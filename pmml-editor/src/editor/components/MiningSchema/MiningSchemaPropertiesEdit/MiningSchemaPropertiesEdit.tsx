@@ -1,0 +1,519 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one
+ * or more contributor license agreements.  See the NOTICE file
+ * distributed with this work for additional information
+ * regarding copyright ownership.  The ASF licenses this file
+ * to you under the Apache License, Version 2.0 (the
+ * "License"); you may not use this file except in compliance
+ * with the License.  You may obtain a copy of the License at
+ *
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+import * as React from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Button } from "@patternfly/react-core/dist/js/components/Button";
+import { TextInput } from "@patternfly/react-core/dist/js/components/TextInput";
+import { Stack, StackItem } from "@patternfly/react-core/dist/js/layouts/Stack";
+import { Split, SplitItem } from "@patternfly/react-core/dist/js/layouts/Split";
+import { Form, FormGroup } from "@patternfly/react-core/dist/js/components/Form";
+import { Tooltip } from "@patternfly/react-core/dist/js/components/Tooltip";
+import { Title, TitleSizes } from "@patternfly/react-core/dist/js/components/Title";
+import { ArrowAltCircleLeftIcon } from "@patternfly/react-icons/dist/js/icons/arrow-alt-circle-left-icon";
+import { HelpIcon } from "@patternfly/react-icons/dist/js/icons/help-icon";
+import { GenericSelector } from "../../EditorScorecard/atoms";
+import {
+  InvalidValueTreatmentMethod,
+  MiningField,
+  MissingValueTreatmentMethod,
+  OpType,
+  OutlierTreatmentMethod,
+  UsageType,
+} from "@kie-tools/pmml-editor-marshaller";
+import "./MiningSchemaPropertiesEdit.scss";
+import { useValidationRegistry } from "../../../validation";
+import { Builder } from "../../../paths";
+import {
+  areLowHighValuesRequired,
+  isInvalidValueReplacementRequired,
+  isMissingValueReplacementRequired,
+} from "../../../validation/MiningSchema";
+
+interface MiningSchemaPropertiesEditProps {
+  modelIndex: number;
+  miningFieldIndex: number;
+  field: MiningField;
+  onSave: (field: MiningField) => void;
+  onClose: () => void;
+}
+
+const MiningSchemaPropertiesEdit = ({
+  modelIndex,
+  miningFieldIndex,
+  field,
+  onSave,
+  onClose,
+}: MiningSchemaPropertiesEditProps) => {
+  const [usageType, setUsageType] = useState(field.usageType ?? "");
+  const [opType, setOpType] = useState(field.optype ?? "");
+  const [importance, setImportance] = useState(field.importance);
+  const [outliers, setOutliers] = useState(field.outliers ?? "");
+  const [lowValue, setLowValue] = useState(field.lowValue);
+  const [highValue, setHighValue] = useState(field.highValue);
+  const [missingValueReplacement, setMissingValueReplacement] = useState(field.missingValueReplacement ?? "");
+  const [missingValueTreatment, setMissingValueTreatment] = useState(field.missingValueTreatment ?? "");
+  const [invalidValueTreatment, setInvalidValueTreatment] = useState(field.invalidValueTreatment ?? "");
+  const [invalidValueReplacement, setInvalidValueReplacement] = useState(field.invalidValueReplacement ?? "");
+  const [submitChanges, setSubmitChanges] = useState(false);
+
+  const handleSave = () => {
+    const updatedField = { name: field.name } as MiningField;
+    if (usageType.length > 0) {
+      updatedField.usageType = usageType as UsageType;
+    }
+    if (opType.length > 0) {
+      updatedField.optype = opType as OpType;
+    }
+    if (typeof importance === "number") {
+      updatedField.importance = importance;
+    }
+    if (outliers) {
+      updatedField.outliers = outliers as OutlierTreatmentMethod;
+    }
+    if (typeof lowValue === "number") {
+      updatedField.lowValue = lowValue;
+    }
+    if (typeof highValue === "number") {
+      updatedField.highValue = highValue;
+    }
+    if (missingValueReplacement) {
+      updatedField.missingValueReplacement = missingValueReplacement;
+    }
+    if (missingValueTreatment.length > 0) {
+      updatedField.missingValueTreatment = missingValueTreatment as MissingValueTreatmentMethod;
+    }
+    if (invalidValueReplacement) {
+      updatedField.invalidValueReplacement = invalidValueReplacement;
+    }
+    if (invalidValueTreatment.length > 0) {
+      updatedField.invalidValueTreatment = invalidValueTreatment as InvalidValueTreatmentMethod;
+    }
+    onSave(updatedField);
+    setSubmitChanges(false);
+  };
+
+  useEffect(() => {
+    if (submitChanges) {
+      handleSave();
+    }
+  }, [submitChanges]);
+
+  useEffect(() => {
+    setUsageType(field.usageType ?? "");
+    setOpType(field.optype ?? "");
+    setImportance(field.importance);
+    setOutliers(field.outliers ?? "");
+    setLowValue(field.lowValue);
+    setHighValue(field.highValue);
+    setMissingValueReplacement(field.missingValueReplacement ?? "");
+    setMissingValueTreatment(field.missingValueTreatment ?? "");
+    setInvalidValueTreatment(field.invalidValueTreatment ?? "");
+    setInvalidValueReplacement(field.invalidValueReplacement ?? "");
+  }, [field]);
+
+  const { validationRegistry } = useValidationRegistry();
+  const validationsImportance = useMemo(
+    () =>
+      validationRegistry.get(
+        Builder().forModel(modelIndex).forMiningSchema().forMiningField(miningFieldIndex).forImportance().build()
+      ),
+    [modelIndex, miningFieldIndex, field]
+  );
+  const validationsLowValue = useMemo(
+    () =>
+      validationRegistry.get(
+        Builder().forModel(modelIndex).forMiningSchema().forMiningField(miningFieldIndex).forLowValue().build()
+      ),
+    [modelIndex, miningFieldIndex, field]
+  );
+  const validationsHighValue = useMemo(
+    () =>
+      validationRegistry.get(
+        Builder().forModel(modelIndex).forMiningSchema().forMiningField(miningFieldIndex).forHighValue().build()
+      ),
+    [modelIndex, miningFieldIndex, field]
+  );
+  const validationsMissingValueReplacement = useMemo(
+    () =>
+      validationRegistry.get(
+        Builder()
+          .forModel(modelIndex)
+          .forMiningSchema()
+          .forMiningField(miningFieldIndex)
+          .forMissingValueReplacement()
+          .build()
+      ),
+    [modelIndex, miningFieldIndex, field]
+  );
+  const validationsInvalidValueReplacement = useMemo(
+    () =>
+      validationRegistry.get(
+        Builder()
+          .forModel(modelIndex)
+          .forMiningSchema()
+          .forMiningField(miningFieldIndex)
+          .forInvalidValueReplacement()
+          .build()
+      ),
+    [modelIndex, miningFieldIndex, field]
+  );
+
+  const enableLowValueComponent = useMemo(
+    () => areLowHighValuesRequired(field.outliers) || field.lowValue !== undefined,
+    [modelIndex, miningFieldIndex, field]
+  );
+  const enableHighValueComponent = useMemo(
+    () => areLowHighValuesRequired(field.outliers) || field.highValue !== undefined,
+    [modelIndex, miningFieldIndex, field]
+  );
+  const enableMissingValueComponent = useMemo(
+    () => isMissingValueReplacementRequired(field.missingValueTreatment) || field.missingValueReplacement !== undefined,
+    [modelIndex, miningFieldIndex, field]
+  );
+  const enableInvalidValueComponent = useMemo(
+    () => isInvalidValueReplacementRequired(field.invalidValueTreatment) || field.invalidValueReplacement !== undefined,
+    [modelIndex, miningFieldIndex, field]
+  );
+
+  const toNumberOrUndefined = (value: string): number | undefined => {
+    const _value = Number.parseFloat(value);
+    return isNaN(_value) ? undefined : _value;
+  };
+
+  return (
+    <Stack hasGutter={true} className="mining-schema__edit">
+      <StackItem>
+        <Title headingLevel="h4" size={TitleSizes.xl}>
+          <Button variant="link" isInline={true} onClick={onClose}>
+            {field.name}
+          </Button>
+          &nbsp;/&nbsp;属性
+        </Title>
+      </StackItem>
+      <StackItem>
+        <section className="mining-schema__edit__form">
+          <Form>
+            <Stack hasGutter={true}>
+              <StackItem>
+                <Split hasGutter={true}>
+                  <SplitItem>
+                    <FormGroup
+                      className="mining-schema__properties__field"
+                      label="字段使用类型"
+                      fieldId="usageType"
+                    >
+                      <GenericSelector
+                        id="usageType"
+                        items={[
+                          "",
+                          "active",
+                          "predicted",
+                          "target",
+                          "supplementary",
+                          "group",
+                          "order",
+                          "frequencyWeight",
+                          "analysisWeight",
+                        ]}
+                        onSelect={(selection) => {
+                          setUsageType(selection as UsageType);
+                          setSubmitChanges(true);
+                        }}
+                        selection={usageType}
+                        data-ouia-component-id="usage-type"
+                        data-ouia-component-type="option-box"
+                      />
+                    </FormGroup>
+                  </SplitItem>
+                  <SplitItem>
+                    <FormGroup className="mining-schema__properties__field" label="字段操作类型" fieldId="opType">
+                      <GenericSelector
+                        id="opType"
+                        items={["", "categorical", "ordinal", "continuous"]}
+                        onSelect={(selection) => {
+                          setOpType(selection as OpType);
+                          setSubmitChanges(true);
+                        }}
+                        selection={opType}
+                      />
+                    </FormGroup>
+                  </SplitItem>
+                </Split>
+              </StackItem>
+              <StackItem>
+                <FormGroup
+                  className="mining-schema__properties__field"
+                  label="重要性"
+                  fieldId="importance"
+                  helperText={validationsImportance.length === 0 ? "" : validationsImportance[0].message}
+                  validated={validationsImportance.length === 0 ? "default" : "warning"}
+                >
+                  <TextInput
+                    type="number"
+                    min={0}
+                    max={1}
+                    id="importance"
+                    name="importance"
+                    aria-describedby="Importance"
+                    value={importance ?? ""}
+                    ouiaId="importance"
+                    data-ouia-component-type="double-input"
+                    validated={validationsImportance.length === 0 ? "default" : "warning"}
+                    onChange={(value) => setImportance(toNumberOrUndefined(value))}
+                    onBlur={() => {
+                      if (importance !== undefined) {
+                        let _importance = importance;
+                        if (_importance < 0) {
+                          _importance = 0;
+                          setImportance(_importance);
+                        } else if (_importance > 1) {
+                          _importance = 1;
+                          setImportance(_importance);
+                        }
+                      }
+                      handleSave();
+                    }}
+                  />
+                </FormGroup>
+              </StackItem>
+              <StackItem>
+                <Split hasGutter={true}>
+                  <SplitItem>
+                    <FormGroup
+                      className="mining-schema__properties__field"
+                      label="异常值处理方法"
+                      fieldId="outliers"
+                    >
+                      <GenericSelector
+                        id="outliers"
+                        items={["", "asIs", "asMissingValues", "asExtremeValues"]}
+                        onSelect={(selection) => {
+                          setOutliers(selection as OutlierTreatmentMethod);
+                          setSubmitChanges(true);
+                        }}
+                        selection={outliers}
+                        data-ouia-component-id="outliers"
+                      />
+                    </FormGroup>
+                  </SplitItem>
+                  <SplitItem>
+                    <FormGroup
+                      label="低值"
+                      fieldId="lowValue"
+                      className="mining-schema__properties__field"
+                      helperText={validationsLowValue.length === 0 ? "" : validationsLowValue[0].message}
+                      validated={validationsLowValue.length === 0 ? "default" : "warning"}
+                      labelIcon={
+                        <Tooltip
+                          content={`当异常值设置为 "asExtremeValues" 或 "asMissingValues" 时需要低值`}
+                        >
+                          <button
+                            aria-label="低值字段的更多信息"
+                            onClick={(e) => e.preventDefault()}
+                            className="pf-c-form__group-label-help"
+                          >
+                            <HelpIcon style={{ color: "var(--pf-global--info-color--100)" }} />
+                          </button>
+                        </Tooltip>
+                      }
+                    >
+                      <TextInput
+                        type="number"
+                        id="lowValue"
+                        name="lowValue"
+                        aria-describedby="Low Value"
+                        value={lowValue ?? ""}
+                        validated={validationsLowValue.length === 0 ? "default" : "warning"}
+                        isDisabled={!enableLowValueComponent}
+                        placeholder={!enableLowValueComponent ? "<不需要>" : ""}
+                        className={!enableLowValueComponent ? "mining-schema__edit__form__disabled" : ""}
+                        onChange={(value) => setLowValue(toNumberOrUndefined(value))}
+                        onBlur={handleSave}
+                        ouiaId="low-value"
+                      />
+                    </FormGroup>
+                  </SplitItem>
+                  <SplitItem>
+                    <FormGroup
+                      label="高值"
+                      fieldId="highValue"
+                      className="mining-schema__properties__field"
+                      helperText={validationsHighValue.length === 0 ? "" : validationsHighValue[0].message}
+                      validated={validationsHighValue.length === 0 ? "default" : "warning"}
+                      labelIcon={
+                        <Tooltip
+                          content={`当异常值设置为 "asExtremeValues" 或 "asMissingValues" 时需要高值`}
+                        >
+                          <button
+                            aria-label="高值字段的更多信息"
+                            onClick={(e) => e.preventDefault()}
+                            className="pf-c-form__group-label-help"
+                          >
+                            <HelpIcon style={{ color: "var(--pf-global--info-color--100)" }} />
+                          </button>
+                        </Tooltip>
+                      }
+                    >
+                      <TextInput
+                        type="number"
+                        id="highValue"
+                        name="highValue"
+                        aria-describedby="High Value"
+                        value={highValue ?? ""}
+                        validated={validationsHighValue.length === 0 ? "default" : "warning"}
+                        isDisabled={!enableHighValueComponent}
+                        placeholder={!enableHighValueComponent ? "<不需要>" : ""}
+                        className={!enableHighValueComponent ? "mining-schema__edit__form__disabled" : ""}
+                        onChange={(value) => setHighValue(toNumberOrUndefined(value))}
+                        onBlur={handleSave}
+                        ouiaId="high-value"
+                      />
+                    </FormGroup>
+                  </SplitItem>
+                </Split>
+              </StackItem>
+              <StackItem>
+                <Split hasGutter={true}>
+                  <SplitItem>
+                    <FormGroup label="缺失值处理方法" fieldId="missingValueTreatment">
+                      <GenericSelector
+                        id="missingValueTreatment"
+                        items={["", "asIs", "asMean", "asMode", "asMedian", "asValue", "returnInvalid"]}
+                        onSelect={(selection) => {
+                          setMissingValueTreatment(selection as MissingValueTreatmentMethod);
+                          setSubmitChanges(true);
+                        }}
+                        selection={missingValueTreatment}
+                      />
+                    </FormGroup>
+                  </SplitItem>
+                  <SplitItem>
+                    <FormGroup
+                      label="缺失值替换"
+                      fieldId="missingValueReplacement"
+                      validated={validationsMissingValueReplacement.length === 0 ? "default" : "warning"}
+                      helperText={
+                        validationsMissingValueReplacement[0] ? validationsMissingValueReplacement[0].message : ""
+                      }
+                      labelIcon={
+                        <Tooltip
+                          content={`当缺失值处理设置为 "asMean", "asMedian" 或 "asMode" 时需要缺失值替换`}
+                        >
+                          <button
+                            aria-label="缺失值替换字段的更多信息"
+                            onClick={(e) => e.preventDefault()}
+                            className="pf-c-form__group-label-help"
+                          >
+                            <HelpIcon style={{ color: "var(--pf-global--info-color--100)" }} />
+                          </button>
+                        </Tooltip>
+                      }
+                    >
+                      <TextInput
+                        type="text"
+                        id="missingValueReplacement"
+                        name="missingValueReplacement"
+                        aria-describedby="Missing Value Replacement"
+                        value={missingValueReplacement}
+                        validated={validationsMissingValueReplacement.length === 0 ? "default" : "warning"}
+                        isDisabled={!enableMissingValueComponent}
+                        placeholder={!enableMissingValueComponent ? "<不需要>" : ""}
+                        className={!enableMissingValueComponent ? "mining-schema__edit__form__disabled" : ""}
+                        onChange={(value) => setMissingValueReplacement(value)}
+                        onBlur={handleSave}
+                      />
+                    </FormGroup>
+                  </SplitItem>
+                </Split>
+              </StackItem>
+              <StackItem>
+                <Split hasGutter={true}>
+                  <SplitItem>
+                    <FormGroup label="无效值处理方法" fieldId="invalidValueTreatment">
+                      <GenericSelector
+                        id="invalidValueTreatment"
+                        items={["", "returnInvalid", "asIs", "asMissing", "asValue"]}
+                        onSelect={(selection) => {
+                          setInvalidValueTreatment(selection as InvalidValueTreatmentMethod);
+                          setSubmitChanges(true);
+                        }}
+                        selection={invalidValueTreatment}
+                      />
+                    </FormGroup>
+                  </SplitItem>
+                  <SplitItem>
+                    <FormGroup
+                      label="无效值替换"
+                      fieldId="invalidValueReplacement"
+                      validated={validationsInvalidValueReplacement.length === 0 ? "default" : "warning"}
+                      helperText={
+                        validationsInvalidValueReplacement[0] ? validationsInvalidValueReplacement[0].message : ""
+                      }
+                      labelIcon={
+                        <Tooltip
+                          content={`当无效值处理设置为 "asValue" 时需要无效值替换`}
+                        >
+                          <button
+                            aria-label="无效值替换字段的更多信息"
+                            onClick={(e) => e.preventDefault()}
+                            className="pf-c-form__group-label-help"
+                          >
+                            <HelpIcon style={{ color: "var(--pf-global--info-color--100)" }} />
+                          </button>
+                        </Tooltip>
+                      }
+                    >
+                      <TextInput
+                        type="text"
+                        id="invalidValueReplacement"
+                        name="invalidValueReplacement"
+                        aria-describedby="Invalid Value Replacement"
+                        value={invalidValueReplacement}
+                        validated={validationsInvalidValueReplacement.length === 0 ? "default" : "warning"}
+                        isDisabled={!enableInvalidValueComponent}
+                        placeholder={!enableInvalidValueComponent ? "<不需要>" : ""}
+                        className={!enableInvalidValueComponent ? "mining-schema__edit__form__disabled" : ""}
+                        onChange={(value) => setInvalidValueReplacement(value)}
+                        onBlur={handleSave}
+                      />
+                    </FormGroup>
+                  </SplitItem>
+                </Split>
+              </StackItem>
+            </Stack>
+          </Form>
+        </section>
+        <section className="mining-schema__edit__actions">
+          <Button
+            variant="primary"
+            onClick={onClose}
+            icon={<ArrowAltCircleLeftIcon />}
+            iconPosition="left"
+            ouiaId="back-to-ms-overview"
+          >
+            返回
+          </Button>
+        </section>
+      </StackItem>
+    </Stack>
+  );
+};
+
+export default MiningSchemaPropertiesEdit;
